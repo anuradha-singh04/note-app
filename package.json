@@ -1,0 +1,35 @@
+{
+  "name": "note-app",
+  "version": "1.0.0",
+  "description": "A simple note-taking app with Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never"
+  },
+  "keywords": ["electron", "notes", "productivity"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^latest",
+    "electron-builder": "^latest"
+  },
+  "dependencies": {
+    "electron-store": "^latest"
+  },
+  "build": {
+    "appId": "com.yourname.noteapp",
+    "productName": "Note App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "node_modules/**/*"
+    ]
+  }
+}

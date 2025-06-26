@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Notes</h2>
+                <div class="header-controls">
+                    <button id="newNoteBtn" class="btn btn-primary" title="New Note">
+                        <span class="icon">+</span>
+                    </button>
+                    <button id="themeToggle" class="btn btn-secondary" title="Toggle Theme">
+                        <span class="icon">🌙</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search notes..." class="search-input">
+            </div>
+            
+            <div class="notes-list" id="notesList">
+                <div class="empty-state" id="emptyState">
+                    <p>No notes yet</p>
+                    <small>Create your first note to get started!</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="editor-container">
+                <div class="editor-header">
+                    <input type="text" id="noteTitle" placeholder="Note Title" class="note-title-input">
+                    <div class="editor-controls">
+                        <button id="saveBtn" class="btn btn-success">Save</button>
+                        <button id="deleteBtn" class="btn btn-danger" style="display: none;">Delete</button>
+                    </div>
+                </div>
+                
+                <textarea id="noteContent" placeholder="Start writing your note..." class="note-editor"></textarea>
+                
+                <div class="editor-footer">
+                    <span id="statusMessage" class="status-message"></span>
+                    <span id="characterCount" class="character-count">0 characters</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
