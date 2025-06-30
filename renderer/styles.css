@@ -359,3 +359,7 @@ body {
 .status-message.error {
     color: var(--danger-color);
 }
+.note-item:focus {
+    outline: 2px solid #007acc;
+    background-color: #0f080d;
+}

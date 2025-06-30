@@ -45,6 +45,36 @@ class NoteApp {
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
         
+        // new
+        // document.addEventListener('keydown', (e) => {
+        //     if (e.key === 'Tab' && document.activeElement === this.noteContent) {
+        //         e.preventDefault();
+        
+        //         const firstNote = this.notesList.querySelector('.note-item');
+        //         if (firstNote) {
+        //             firstNote.focus();
+        //         }
+        //     }
+        
+        //     if (e.key === 'Delete' && document.activeElement.classList.contains('note-item')) {
+        //         const noteId = document.activeElement.dataset.noteId;
+        //         this.deleteNoteById(noteId);
+        //     }
+        // });
+
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                this.handleAdvancedTabNavigation(e);
+            }
+            if (e.key === 'Delete' && document.activeElement.classList.contains('note-item')) {
+                const noteId = document.activeElement.dataset.noteId;
+                this.deleteNoteById(noteId);
+            }
+        });    
+
+
+
         // Menu events
         window.electronAPI.onMenuNewNote(() => this.createNewNote());
         window.electronAPI.onMenuSaveNote(() => this.saveCurrentNote());
@@ -121,30 +151,35 @@ class NoteApp {
             this.notesList.appendChild(noteElement);
         });
     }
-
     createNoteListItem(note) {
         const noteItem = document.createElement('div');
         noteItem.className = 'note-item';
         noteItem.dataset.noteId = note.id;
-        
+        noteItem.setAttribute('tabindex', '0'); 
+        noteItem.setAttribute('role', 'button'); // For accessibility
+        noteItem.setAttribute('aria-label', `Note: ${note.title || 'Untitled'}`);    
+    
         if (this.currentNote && this.currentNote.id === note.id) {
             noteItem.classList.add('active');
         }
-
+    
         const title = note.title || 'Untitled Note';
         const preview = note.content ? note.content.substring(0, 100) + '...' : 'No content';
         const date = new Date(note.updatedAt || note.createdAt).toLocaleDateString();
-
+    
         noteItem.innerHTML = `
             <div class="note-item-title">${this.escapeHtml(title)}</div>
             <div class="note-item-preview">${this.escapeHtml(preview)}</div>
             <div class="note-item-date">${date}</div>
         `;
-
+    
         noteItem.addEventListener('click', () => this.loadNote(note));
-
+    
         return noteItem;
     }
+    
+
+
 
     loadNote(note) {
         if (this.currentNote && this.isModified()) {
@@ -230,6 +265,7 @@ class NoteApp {
 
                 await this.loadNotes();
                 this.clearModified();
+                this.createNewNote();
                 this.showStatus('Note saved successfully', 'success');
             } else {
                 this.showStatus('Error saving note: ' + result.error, 'error');
@@ -240,6 +276,29 @@ class NoteApp {
         }
     }
 
+    // del by keyboard
+
+    async deleteNoteById(noteId) {
+        const note = this.notes.find(n => n.id === noteId);
+        if (!note) return;
+    
+        if (!confirm(`Delete note: "${note.title}"?`)) return;
+    
+        try {
+            const result = await window.electronAPI.deleteNote(noteId);
+            if (result.success) {
+                await this.loadNotes();
+                this.createNewNote();
+                this.showStatus('Note deleted via keyboard', 'success');
+            } else {
+                this.showStatus('Error deleting note', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            this.showStatus('Failed to delete note', 'error');
+        }
+    }
+    
     // for del notes
     async deleteCurrentNote() {
         if (!this.currentNote || !this.currentNote.id) {
@@ -292,25 +351,22 @@ class NoteApp {
     // shortcut keys
 
     handleKeyboardShortcuts(e) {
-        // Ctrl/Cmd + S to save
+      
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
             this.saveCurrentNote();
         }
         
-        // Ctrl/Cmd + N to create new note
         if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
             this.createNewNote();
         }
         
-        // Ctrl/Cmd + T to toggle theme
         if ((e.ctrlKey || e.metaKey) && e.key === 't') {
             e.preventDefault();
             this.toggleTheme();
         }
         
-        // Escape to clear search
         if (e.key === 'Escape' && document.activeElement === this.searchInput) {
             this.searchInput.value = '';
             this.handleSearch('');
@@ -333,7 +389,7 @@ class NoteApp {
             }
         });
     }
-
+ 
     markAsModified() {
         if (this.currentNote) {
             this.currentNote.modified = true;

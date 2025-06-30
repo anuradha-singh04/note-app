@@ -5,3 +5,4 @@ dist/
 .DS_Store
 *.log
 "@ | Out-File -FilePath .gitignore -Encoding utf8
+package-lock.json
