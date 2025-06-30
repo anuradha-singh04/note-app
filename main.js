@@ -55,6 +55,34 @@ function createWindow() {
     store.set('windowMaximized', false);
   });
 
+
+
+
+  mainWindow.on('close', (event) => {
+    event.preventDefault(); 
+
+    mainWindow.webContents.send('app-close-confirm');
+
+    ipcMain.once('app-close-response', (e, { shouldClose, shouldSave, note }) => {
+      if (shouldSave && note) {
+        const notes = store.get('notes', {});
+        const noteId = note.id || generateId();
+
+        notes[noteId] = {
+          ...note,
+          id: noteId,
+          updatedAt: new Date().toISOString()
+        };
+
+        store.set('notes', notes);
+      }
+
+      if (shouldClose) {
+        mainWindow.destroy();
+      }
+    });
+  });
+
   createMenu();
 }
 

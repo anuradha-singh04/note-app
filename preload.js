@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     loadNotes: () => ipcRenderer.invoke('load-notes'),
     deleteNote: (noteId) => ipcRenderer.invoke('delete-note', noteId),
     searchNotes: (query) => ipcRenderer.invoke('search-notes', query),
+    getTheme: () => ipcRenderer.invoke('get-theme'),
+    setTheme: (theme) => ipcRenderer.invoke('set-theme', theme),
+
 
     // for theme
     getTheme: () => ipcRenderer.invoke('get-theme'),
@@ -17,5 +20,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onMenuToggleTheme: (callback) => ipcRenderer.on('menu-toggle-theme', callback),
 
     // Utility
-    removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)
+    removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+
+    // NEW: Handle app-close-confirm from main
+    onAppCloseConfirm: (callback) => ipcRenderer.on('app-close-confirm', callback),
+    sendAppCloseResponse: (data) => ipcRenderer.send('app-close-response', data)
 });

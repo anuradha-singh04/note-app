@@ -3,7 +3,7 @@ class NoteApp {
         this.currentNote = null;
         this.notes = [];
         this.searchTimeout = null;
-        
+
         this.initializeElements();
         this.bindEvents();
         this.loadTheme();
@@ -19,7 +19,7 @@ class NoteApp {
         this.emptyState = document.getElementById('emptyState');
         this.statusMessage = document.getElementById('statusMessage');
         this.characterCount = document.getElementById('characterCount');
-        
+
         // Buttons
         this.newNoteBtn = document.getElementById('newNoteBtn');
         this.saveBtn = document.getElementById('saveBtn');
@@ -33,34 +33,17 @@ class NoteApp {
         this.saveBtn.addEventListener('click', () => this.saveCurrentNote());
         this.deleteBtn.addEventListener('click', () => this.deleteCurrentNote());
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
-        
+
         // Input events
         this.noteContent.addEventListener('input', () => this.updateCharacterCount());
         this.noteTitle.addEventListener('input', () => this.markAsModified());
         this.noteContent.addEventListener('input', () => this.markAsModified());
-        
+
         // Search
         this.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
-        
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
-        
-        // new
-        // document.addEventListener('keydown', (e) => {
-        //     if (e.key === 'Tab' && document.activeElement === this.noteContent) {
-        //         e.preventDefault();
-        
-        //         const firstNote = this.notesList.querySelector('.note-item');
-        //         if (firstNote) {
-        //             firstNote.focus();
-        //         }
-        //     }
-        
-        //     if (e.key === 'Delete' && document.activeElement.classList.contains('note-item')) {
-        //         const noteId = document.activeElement.dataset.noteId;
-        //         this.deleteNoteById(noteId);
-        //     }
-        // });
 
 
         document.addEventListener('keydown', (e) => {
@@ -71,15 +54,14 @@ class NoteApp {
                 const noteId = document.activeElement.dataset.noteId;
                 this.deleteNoteById(noteId);
             }
-        });    
-
-
+        });
 
         // Menu events
         window.electronAPI.onMenuNewNote(() => this.createNewNote());
         window.electronAPI.onMenuSaveNote(() => this.saveCurrentNote());
         window.electronAPI.onMenuToggleTheme(() => this.toggleTheme());
-        
+        window.electronAPI.onAppCloseConfirm(() => this.handleAppClose());
+
 
         this.noteContent.addEventListener('blur', () => {
             if (this.currentNote && this.isModified()) {
@@ -97,6 +79,52 @@ class NoteApp {
         }
     }
 
+    async handleAppClose() {
+        if (this.currentNote && this.isModified()) {
+            const shouldSave = confirm('You have unsaved changes. Do you want to save before closing?');
+
+            if (shouldSave) {
+                await this.saveCurrentNoteWithoutClearing();
+            }
+
+            window.electronAPI.sendAppCloseResponse({
+                shouldClose: true,
+                shouldSave: shouldSave,
+                note: shouldSave ? this.currentNote : null
+            });
+        } else {
+            window.electronAPI.sendAppCloseResponse({
+                shouldClose: true,
+                shouldSave: false,
+                note: null
+            });
+        }
+    }
+
+    async saveCurrentNoteWithoutClearing() {
+        if (!this.currentNote) return;
+
+        const title = this.noteTitle.value.trim();
+        const content = this.noteContent.value.trim();
+
+        const noteToSave = {
+            ...this.currentNote,
+            title: title || 'Untitled Note',
+            content: content,
+            updatedAt: new Date().toISOString()
+        };
+
+        const result = await window.electronAPI.saveNote(noteToSave);
+
+        if (result.success) {
+            this.currentNote.id = result.id;
+            this.currentNote.title = noteToSave.title;
+            this.currentNote.content = noteToSave.content;
+            this.currentNote.updatedAt = noteToSave.updatedAt;
+            this.clearModified();
+        }
+    }
+
     applyTheme(theme) {
         document.body.setAttribute('data-theme', theme);
         this.themeToggle.querySelector('.icon').textContent = theme === 'dark' ? '☀️' : '🌙';
@@ -106,10 +134,10 @@ class NoteApp {
         try {
             const currentTheme = document.body.getAttribute('data-theme') || 'light';
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            
+
             await window.electronAPI.setTheme(newTheme);
             this.applyTheme(newTheme);
-            
+
             this.showStatus('Theme switched to ' + newTheme + ' mode', 'success');
         } catch (error) {
             console.error('Error toggling theme:', error);
@@ -123,8 +151,7 @@ class NoteApp {
         try {
             this.notes = await window.electronAPI.loadNotes();
             this.renderNotesList();
-            
-            // Load the first note if available
+
             if (this.notes.length > 0 && !this.currentNote) {
                 this.loadNote(this.notes[0]);
             }
@@ -136,13 +163,13 @@ class NoteApp {
 
     renderNotesList(notesToRender = this.notes) {
         this.notesList.innerHTML = '';
-        
+
         if (notesToRender.length === 0) {
             this.notesList.appendChild(this.emptyState);
             return;
         }
 
-        const sortedNotes = [...notesToRender].sort((a, b) => 
+        const sortedNotes = [...notesToRender].sort((a, b) =>
             new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
         );
 
@@ -151,35 +178,40 @@ class NoteApp {
             this.notesList.appendChild(noteElement);
         });
     }
+    // tab process
     createNoteListItem(note) {
         const noteItem = document.createElement('div');
         noteItem.className = 'note-item';
         noteItem.dataset.noteId = note.id;
-        noteItem.setAttribute('tabindex', '0'); 
-        noteItem.setAttribute('role', 'button'); // For accessibility
-        noteItem.setAttribute('aria-label', `Note: ${note.title || 'Untitled'}`);    
-    
+        noteItem.setAttribute('tabindex', '0');
+        noteItem.setAttribute('role', 'button');
+        noteItem.setAttribute('aria-label', `Note: ${note.title || 'Untitled'}`);
+
         if (this.currentNote && this.currentNote.id === note.id) {
             noteItem.classList.add('active');
         }
-    
+
         const title = note.title || 'Untitled Note';
         const preview = note.content ? note.content.substring(0, 100) + '...' : 'No content';
         const date = new Date(note.updatedAt || note.createdAt).toLocaleDateString();
-    
+
         noteItem.innerHTML = `
             <div class="note-item-title">${this.escapeHtml(title)}</div>
             <div class="note-item-preview">${this.escapeHtml(preview)}</div>
             <div class="note-item-date">${date}</div>
         `;
-    
+
         noteItem.addEventListener('click', () => this.loadNote(note));
-    
+
+        noteItem.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.loadNote(note);
+            }
+        });
+
         return noteItem;
     }
-    
-
-
 
     loadNote(note) {
         if (this.currentNote && this.isModified()) {
@@ -192,16 +224,16 @@ class NoteApp {
         this.noteTitle.value = note.title || '';
         this.noteContent.value = note.content || '';
         this.deleteBtn.style.display = 'inline-flex';
-        
+
         this.updateCharacterCount();
         this.updateActiveNote();
         this.clearModified();
-        
+
         // Focus on content area
         this.noteContent.focus();
     }
 
-// create new blank if old changes not saved gives alert
+    // create new blank if old changes not saved gives alert
 
     createNewNote() {
         if (this.currentNote && this.isModified()) {
@@ -220,14 +252,14 @@ class NoteApp {
         this.noteTitle.value = '';
         this.noteContent.value = '';
         this.deleteBtn.style.display = 'none';
-        
+
         this.updateCharacterCount();
         this.updateActiveNote();
         this.clearModified();
-        
+
         // Focus on title input
         this.noteTitle.focus();
-        
+
         this.showStatus('New note created', 'success');
     }
 
@@ -281,9 +313,9 @@ class NoteApp {
     async deleteNoteById(noteId) {
         const note = this.notes.find(n => n.id === noteId);
         if (!note) return;
-    
+
         if (!confirm(`Delete note: "${note.title}"?`)) return;
-    
+
         try {
             const result = await window.electronAPI.deleteNote(noteId);
             if (result.success) {
@@ -298,7 +330,7 @@ class NoteApp {
             this.showStatus('Failed to delete note', 'error');
         }
     }
-    
+
     // for del notes
     async deleteCurrentNote() {
         if (!this.currentNote || !this.currentNote.id) {
@@ -330,12 +362,12 @@ class NoteApp {
 
     async handleSearch(query) {
         clearTimeout(this.searchTimeout);
-        
+
         this.searchTimeout = setTimeout(async () => {
             try {
                 const searchResults = await window.electronAPI.searchNotes(query);
                 this.renderNotesList(searchResults);
-                
+
                 if (query && searchResults.length === 0) {
                     this.showStatus('No notes found matching your search', 'error');
                 } else if (query) {
@@ -347,26 +379,26 @@ class NoteApp {
             }
         }, 300);
     }
- 
+
     // shortcut keys
 
     handleKeyboardShortcuts(e) {
-      
+
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
             this.saveCurrentNote();
         }
-        
+
         if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
             e.preventDefault();
             this.createNewNote();
         }
-        
+
         if ((e.ctrlKey || e.metaKey) && e.key === 't') {
             e.preventDefault();
             this.toggleTheme();
         }
-        
+
         if (e.key === 'Escape' && document.activeElement === this.searchInput) {
             this.searchInput.value = '';
             this.handleSearch('');
@@ -389,7 +421,7 @@ class NoteApp {
             }
         });
     }
- 
+
     markAsModified() {
         if (this.currentNote) {
             this.currentNote.modified = true;
@@ -409,7 +441,7 @@ class NoteApp {
     showStatus(message, type = 'info') {
         this.statusMessage.textContent = message;
         this.statusMessage.className = `status-message ${type}`;
-        
+
         // Clear status after 3 seconds
         setTimeout(() => {
             this.statusMessage.textContent = '';
