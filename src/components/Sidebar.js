@@ -63,7 +63,10 @@ const Sidebar = ({
                         <NoteItem
                             key={note.id || 'new'}
                             note={note}
-                            isActive={currentNote && currentNote.id === note.id}
+                            isActive={currentNote && (
+                                (currentNote.id && currentNote.id === note.id) ||
+                                (!currentNote.id && !note.id && currentNote.createdAt === note.createdAt)
+                            )}
                             onSelect={() => onSelectNote(note)}
                             escapeHtml={escapeHtml}
                         />

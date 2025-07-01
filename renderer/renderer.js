@@ -332,28 +332,24 @@ class NoteApp {
     }
 
     // for del notes
+    // in App.js
     async deleteCurrentNote() {
-        if (!this.currentNote || !this.currentNote.id) {
-            this.showStatus('No note to delete', 'error');
-            return;
-        }
+        if (!this.currentNote?.id) return;
+        if (!confirm('Are you sure you want to delete this note?')) return;
 
-        if (!confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
-            return;
-        }
-
+        const deletingId = this.currentNote.id;
         try {
-            const result = await window.electronAPI.deleteNote(this.currentNote.id);
-
-            if (result.success) {
-                await this.loadNotes();
-                this.createNewNote();
-                this.showStatus('Note deleted successfully', 'success');
-            } else {
+            const result = await window.electronAPI.deleteNote(deletingId);
+            if (!result.success) {
                 this.showStatus('Error deleting note: ' + result.error, 'error');
+                return;
             }
-        } catch (error) {
-            console.error('Error deleting note:', error);
+
+            await this.loadNotes();
+            this.createNewNote();
+            this.showStatus('Note deleted successfully', 'success');
+        } catch (err) {
+            console.error(err);
             this.showStatus('Error deleting note', 'error');
         }
     }

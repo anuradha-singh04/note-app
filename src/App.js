@@ -14,29 +14,70 @@ const App = () => {
 
     // Load initial data
     useEffect(() => {
-        loadNotes();
-        loadTheme();
+        const initializeApp = async () => {
+            await loadNotes();
+            await loadTheme();
+        };
+        initializeApp();
     }, []);
 
-    // Set up menu event listeners
+    // Set up menu event listeners only once
     useEffect(() => {
-        if (window.electronAPI) {
-            window.electronAPI.onMenuNewNote(() => createNewNote());
-            window.electronAPI.onMenuSaveNote(() => saveCurrentNote());
-            window.electronAPI.onMenuToggleTheme(() => toggleTheme());
-            window.electronAPI.onAppCloseConfirm(() => handleAppClose());
-        }
-    }, [currentNote, isModified]);
+        if (!window.electronAPI) return;
+
+        // Clear any existing listeners first
+        window.electronAPI.removeAllMenuListeners();
+
+        // Set up new listeners with direct functions (no memoization needed here)
+        window.electronAPI.onMenuNewNote(() => {
+            if (currentNote && isModified) {
+                if (!confirm('You have unsaved changes. Do you want to discard them?')) return;
+            }
+            const newNote = {
+                id: null,
+                title: '',
+                content: '',
+                createdAt: new Date().toISOString()
+            };
+            setCurrentNote(newNote);
+            setIsModified(false);
+            setSearchQuery('');
+            setNotes(allNotes);
+            showStatus('New note created', 'success');
+        });
+
+        window.electronAPI.onMenuSaveNote(() => {
+            if (currentNote) {
+                saveCurrentNote();
+            }
+        });
+
+        window.electronAPI.onMenuToggleTheme(() => {
+            toggleTheme();
+        });
+
+        window.electronAPI.onAppCloseConfirm(() => {
+            handleAppClose();
+        });
+
+        // Cleanup function
+        return () => {
+            if (window.electronAPI) {
+                window.electronAPI.removeAllMenuListeners();
+            }
+        };
+    }, []); // No dependencies to prevent re-running
 
     const loadNotes = async () => {
         try {
             const loadedNotes = await window.electronAPI.loadNotes();
-            setAllNotes(loadedNotes); // Store all notes
-            setNotes(loadedNotes); // Display notes
+            setAllNotes(loadedNotes);
+            setNotes(loadedNotes);
 
-            // Auto-select first note if none selected and notes exist
+            // Only auto-select first note on initial load when no note is currently active
             if (loadedNotes.length > 0 && !currentNote) {
-                selectNote(loadedNotes[0]);
+                setCurrentNote({ ...loadedNotes[0] });
+                setIsModified(false);
             }
         } catch (error) {
             console.error('Error loading notes:', error);
@@ -73,7 +114,7 @@ const App = () => {
         }
 
         const newNote = {
-            id: null, // New note will not have an ID until saved
+            id: null,
             title: '',
             content: '',
             createdAt: new Date().toISOString()
@@ -81,8 +122,8 @@ const App = () => {
 
         setCurrentNote(newNote);
         setIsModified(false);
-        setSearchQuery(''); // Clear search query to show all notes
-        setNotes(allNotes); // Reset notes to all notes
+        setSearchQuery('');
+        setNotes(allNotes);
         showStatus('New note created', 'success');
     };
 
@@ -122,6 +163,7 @@ const App = () => {
             const result = await window.electronAPI.saveNote(noteToSave);
 
             if (result.success) {
+                // Update current note with saved data
                 setCurrentNote(prev => ({
                     ...prev,
                     id: result.id,
@@ -131,7 +173,12 @@ const App = () => {
                 }));
 
                 setIsModified(false);
-                await loadNotes();
+
+                // Reload notes list
+                const updatedNotes = await window.electronAPI.loadNotes();
+                setAllNotes(updatedNotes);
+                setNotes(updatedNotes);
+
                 showStatus('Note saved successfully', 'success');
             } else {
                 showStatus('Error saving note: ' + result.error, 'error');
@@ -156,13 +203,25 @@ const App = () => {
             const result = await window.electronAPI.deleteNote(currentNote.id);
 
             if (result.success) {
-                // Clear search query to show all notes
+                // Clear search
                 setSearchQuery('');
-                await loadNotes();
 
-                // Reset currentNote to null instead of creating a new note
-                setCurrentNote(null);
+                // Create new blank note immediately
+                const newNote = {
+                    id: null,
+                    title: '',
+                    content: '',
+                    createdAt: new Date().toISOString()
+                };
+
+                setCurrentNote(newNote);
                 setIsModified(false);
+
+                // Reload notes list
+                const updatedNotes = await window.electronAPI.loadNotes();
+                setAllNotes(updatedNotes);
+                setNotes(updatedNotes);
+
                 showStatus('Note deleted successfully', 'success');
             } else {
                 showStatus('Error deleting note: ' + result.error, 'error');
@@ -190,7 +249,6 @@ const App = () => {
         setSearchQuery(query);
 
         if (!query.trim()) {
-            // If search is empty, show all notes
             setNotes(allNotes);
             return;
         }
@@ -237,7 +295,7 @@ const App = () => {
         }
     };
 
-    // Keyboard shortcuts
+    // Keyboard shortcuts - simple version without dependencies
     useEffect(() => {
         const handleKeyDown = (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -256,7 +314,7 @@ const App = () => {
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [currentNote, isModified]);
+    }, []);
 
     // Filter notes based on search
     const filteredNotes = notes;

@@ -4,33 +4,15 @@ const Editor = ({ currentNote, isModified, onUpdateNote, onSaveNote, onDeleteNot
     const titleRef = useRef(null);
     const contentRef = useRef(null);
 
+    // Auto-focus on title when creating a new note
     useEffect(() => {
-        // Auto-focus on title when creating a new note
         if (currentNote && !currentNote.id && titleRef.current) {
-            // Small delay to ensure the component is fully rendered
             const timeoutId = setTimeout(() => {
                 titleRef.current.focus();
-                titleRef.current.select(); // Select all text if any
-            }, 100);
-
+            }, 50);
             return () => clearTimeout(timeoutId);
         }
-    }, [currentNote?.id]); // React to changes in note ID specifically
-
-    // Auto-save when losing focus
-    useEffect(() => {
-        const handleBlur = () => {
-            if (currentNote && isModified) {
-                onSaveNote();
-            }
-        };
-
-        const contentElement = contentRef.current;
-        if (contentElement) {
-            contentElement.addEventListener('blur', handleBlur);
-            return () => contentElement.removeEventListener('blur', handleBlur);
-        }
-    }, [currentNote, isModified, onSaveNote]);
+    }, [currentNote?.id]);
 
     if (!currentNote) {
         return (
