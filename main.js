@@ -2,17 +2,12 @@ const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 
 // Initialize store
-let Store;
-try {
-  Store = require('electron-store').default;
-} catch (error) {
-  Store = require('electron-store');
-}
+const Store = require('electron-store');
 const store = new Store();
 
 let mainWindow;
 function createWindow() {
-  
+
   const windowBounds = store.get('windowBounds', {
     width: 1200,
     height: 800,
@@ -38,7 +33,7 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    
+
     if (store.get('windowMaximized', false)) {
       mainWindow.maximize();
     }
@@ -46,11 +41,11 @@ function createWindow() {
 
   mainWindow.on('resize', saveWindowBounds);
   mainWindow.on('move', saveWindowBounds);
-  
+
   mainWindow.on('maximize', () => {
     store.set('windowMaximized', true);
   });
-  
+
   mainWindow.on('unmaximize', () => {
     store.set('windowMaximized', false);
   });
@@ -59,7 +54,7 @@ function createWindow() {
 
 
   mainWindow.on('close', (event) => {
-    event.preventDefault(); 
+    event.preventDefault();
 
     mainWindow.webContents.send('app-close-confirm');
 
@@ -148,13 +143,13 @@ ipcMain.handle('save-note', async (event, note) => {
   try {
     const notes = store.get('notes', {});
     const noteId = note.id || generateId();
-    
+
     notes[noteId] = {
       ...note,
       id: noteId,
       updatedAt: new Date().toISOString()
     };
-    
+
     store.set('notes', notes);
     return { success: true, id: noteId };
   } catch (error) {
@@ -199,14 +194,14 @@ ipcMain.handle('search-notes', async (event, query) => {
   try {
     const notes = store.get('notes', {});
     const notesArray = Object.values(notes);
-    
+
     if (!query) return notesArray;
-    
-    const searchResults = notesArray.filter(note => 
+
+    const searchResults = notesArray.filter(note =>
       note.title.toLowerCase().includes(query.toLowerCase()) ||
       note.content.toLowerCase().includes(query.toLowerCase())
     );
-    
+
     return searchResults;
   } catch (error) {
     console.error('Error searching notes:', error);

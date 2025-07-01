@@ -10,7 +10,7 @@
     --danger-color: #dc3545;
     --warning-color: #ffc107;
     --secondary-color: #6c757d;
-    
+
     /* Light theme */
     --bg-color: #ffffff;
     --sidebar-bg: #f8f9fa;
@@ -18,7 +18,7 @@
     --border-color: #dee2e6;
     --hover-bg: #e9ecef;
     --input-bg: #ffffff;
-    --shadow: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] {
@@ -28,7 +28,7 @@
     --border-color: #404040;
     --hover-bg: #3a3a3a;
     --input-bg: #2d2d2d;
-    --shadow: 0 2px 4px rgba(0,0,0,0.3);
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 body {
@@ -130,7 +130,7 @@ body {
     opacity: 0.7;
     line-height: 1.4;
     display: -webkit-box;
-   
+
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
@@ -325,17 +325,45 @@ body {
     background: var(--secondary-color);
 }
 
+/* Editor placeholder when no note is selected */
+.editor-placeholder {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    color: var(--secondary-color);
+}
+
+.editor-placeholder h3 {
+    margin-bottom: 16px;
+    font-size: 24px;
+    font-weight: 300;
+}
+
+.editor-placeholder p {
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+/* Disabled button styles */
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .sidebar {
         width: 250px;
     }
-    
+
     .editor-header {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .editor-controls {
         justify-content: center;
     }
@@ -343,8 +371,15 @@ body {
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .note-item {
@@ -359,6 +394,7 @@ body {
 .status-message.error {
     color: var(--danger-color);
 }
+
 .note-item:focus {
     outline: 2px solid #007acc;
     background-color: #0f080d;
